@@ -1,0 +1,1 @@
+cmake -S . -B output -T ClangCL && cmake --build output --config Release && output\Release\poope.exe
