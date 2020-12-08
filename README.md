@@ -1,17 +1,23 @@
 ## 💩 What is poope?
-**poope** is just another statically typed language. The language syntax is very gud and similar to C syntax!
+**poope** is basically an assembler, but **VERY** different!
 
 ## ⌨ Example Code
-```c
-void init()
-{
-    print("Hello, World!");
-    return;
-}
+```
+.data
+
+	; Define a byte variable called hello_world
+	byte hello_world: "Hello, World!"
+
+.code
+
+	; Print 'Hello, World!' to console
+	cpy reg0, hello_world
+	call print
+
+	; Success (Exit Code: 0)
+	cpy reg, 0
+	ret
 ```
 
 ## 🚀 TODO List!
-- [ ] Local Variables
-- [ ] Global Variables
-- [ ] Functions
-- [ ] Data Structures
+*loading..*
