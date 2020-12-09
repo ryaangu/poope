@@ -148,7 +148,6 @@ static void write_pe_file()
 	path_builder.push(g_linker.path);
 	path_builder.push(".exe");
 
-	printl(g_linker.executable.size);
 	write_file(path_builder, reinterpret_cast<const char *>(g_linker.executable.data), g_linker.executable.size);
 }
 

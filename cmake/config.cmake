@@ -25,5 +25,5 @@ ELSEIF (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     # macOS
     SET (RFC_PLATFORM_MACOS ON)
     MESSAGE (WARNING "TODO: Add macOS support!")
-    
+
 ENDIF ()

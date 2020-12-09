@@ -28,3 +28,10 @@
 - [x] return
 
 - [ ] entry point
+
+## 📝 NOTES
+- **ALWAYS** optimize the source code.
+- **ALWAYS** try to comment everything.
+
+## ✍ LICENSE
+Please refer to [**LICENSE**](https://github.com/ryaangu/poope/blob/main/LICENSE).
