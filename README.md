@@ -20,4 +20,11 @@
 ```
 
 ## 🚀 TODO List!
-*loading..*
+- [ ] sections
+- [x] labels
+- [x] copy register, value
+- [x] copy register, register
+- [x] jmp label
+- [x] return
+
+- [ ] entry point

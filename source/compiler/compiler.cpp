@@ -148,6 +148,17 @@ static int token_get_register_value(int type)
 	return 0;
 }
 
+// Get register mod from token
+static int token_get_register_mod(int a, int b)
+{
+	// Get register values (as binary)
+	a = (token_get_register_value(a) << 0);
+	b = (token_get_register_value(b) << 0);
+
+	// Calculate and return
+	return (((0b11000 | b) << 3) | a);
+}
+
 // Emit byte
 static void emit_byte(unsigned char byte)
 {
@@ -252,18 +263,40 @@ static void cpy()
 	// Increase copy instruction with register value
 	copy_instruction += token_get_register_value(g_compiler.previous.type);
 
+	// Store the register type (maybe the value will be also a register!)
+	int register_type = g_compiler.previous.type;
+
 	// Expect comma after register
 	consume(TOKEN_COMMA, "Expect comma after register.");
 
-	// Expect number after comma
-	consume(TOKEN_NUMBER, "Expect number value after comma.");
+	// Number value?
+	if (match(TOKEN_NUMBER))
+	{
+		// Get the number value from token
+		int value = string_to_integer(g_compiler.previous.start);
 
-	// Get the number value from token
-	int value = string_to_integer(g_compiler.previous.start);
+		// Emit bytes
+		emit_byte(copy_instruction);
+		emit_dword(value);
+	}
+	else
+	{
+		// Register?
+		advance();
 
-	// Emit bytes
-	emit_byte(copy_instruction);
-	emit_dword(value);
+		if (token_is_register(g_compiler.previous.type))
+		{
+			// Get register mod from token
+			int mod = token_get_register_mod(register_type, g_compiler.previous.type);
+
+			// Emit bytes
+			emit_bytes(0x89, mod);
+		}
+		else
+		{
+			error("Expect register or number value.");
+		}
+	}
 }
 
 // Jump (jmp)

@@ -8,7 +8,8 @@
 #define IMAGE_DOS_SIGNATURE 0x5a4d
 #define IMAGE_NT_SIGNATURE  0x00004550
 
-#define IMAGE_FILE_MACHINE_AMD64 0x8664
+#define IMAGE_FILE_MACHINE_UNKNOWN 0x0
+#define IMAGE_FILE_MACHINE_AMD64   0x8664
 
 #define PE32  0x10b
 #define PE32P 0x20b
@@ -31,6 +32,22 @@
 
 #define FILE_ALIGNMENT    1 // 512
 #define SECTION_ALIGNMENT 1 // 4096
+
+#define OPTIONAL_HEADER_SIZE 240
+#define SECTION_BODY_START   456
+#define SECTION_HEADER_SIZE  36
+
+#define SECTION_COUNT 0
+
+#define BSS_START 0
+#define BSS_SIZE  0
+
+#define DATA_START 0
+#define DATA_SIZE  0
+
+#define CODE_START  SECTION_BODY_START + 0
+#define CODE_SIZE   g_compiler.code.size
+#define ENTRY_POINT CODE_START + 0
 
 // Assembly-like Functions Short Names
 #define db(value) g_linker.executable.write_byte(value);
@@ -81,21 +98,21 @@ static void write_pe_file()
 
 	// PE File Header
 	dw (IMAGE_FILE_MACHINE_AMD64);                                     // Machine
-	dw (0);      			                                           // Number of Sections
+	dw (SECTION_COUNT);                                                // Number of Sections
 	dd (1606536130);                                                   // Time Date Stamp
 	dq (0);			                                                   // UNUSED
-	dw (240);                                                          // Optional Header Size
+	dw (OPTIONAL_HEADER_SIZE);                                         // Optional Header Size
 	dw (IMAGE_FILE_EXECUTABLE_IMAGE | IMAGE_FILE_LARGE_ADDRESS_AWARE); // Characteristics
 
 	// PE File Optional Header
-	dw (PE32P);                // Magic
-	dw (0);                    // Linker Version
-	dd (g_compiler.code.size); // Code Size
-	dd (0);                    // Data Size
-	dd (0);                    // Bss Size
-	dd (456);                  // Entry Point Address
-	dd (456);                  // Base of Code
-	dd (0);                    // Base of Data
+	dw (PE32P);       // Magic
+	dw (0);           // Linker Version
+	dd (CODE_SIZE);   // Code Size
+	dd (DATA_SIZE);   // Data Size
+	dd (BSS_SIZE);    // BSS Size
+	dd (ENTRY_POINT); // Entry Point Address
+	dd (CODE_START);  // Base of Code
+	dd (0);           // Base of Data
 
 	dd (IMAGE_BASE);        // Image Base
 	dd (SECTION_ALIGNMENT); // Section Alignment
@@ -120,7 +137,7 @@ static void write_pe_file()
     // Data Directories
     tdb (0, 16 * 8);
 
-    // Machine Code
+    // Section Body: .code
     for (int i = 0; i < g_compiler.code.size; ++i)
     	db (g_compiler.code.data[i]);
 
