@@ -24,7 +24,7 @@
 - [x] labels
 - [x] copy register, value
 - [x] copy register, register
-- [x] jmp label
+- [x] jump label
 - [x] return
 
 - [ ] entry point
