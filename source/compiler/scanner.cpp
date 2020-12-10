@@ -33,6 +33,8 @@ void scanner_init(const char *source)
 	keywords_map.set("cmp", TOKEN_CMP);
 	keywords_map.set("jmp", TOKEN_JMP);
 	keywords_map.set("ret", TOKEN_RET);
+	keywords_map.set("inc", TOKEN_INC);
+	keywords_map.set("dec", TOKEN_DEC);
 
 	keywords_map.set("reg0", TOKEN_REG0);
 	keywords_map.set("reg1", TOKEN_REG1);

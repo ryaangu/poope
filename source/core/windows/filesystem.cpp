@@ -1,15 +1,15 @@
 #include <core/filesystem.hpp>
 #include <windows.h>
 
-// Write content to path
-void write_file(const char *path, const char *content, int content_length)
+// Open File
+int file_open(File &file, const char *path)
 {
 	// Convert UTF-8 to UTF-16
 	TCHAR tpath[MAX_PATH];
 	MultiByteToWideChar(CP_UTF8, 0, path, -1, tpath, MAX_PATH);
 
 	// Open a handle to the file
-	HANDLE file_handle = CreateFileW(
+	file.handle = CreateFileW(
 		tpath,
 		GENERIC_WRITE,
 		FILE_SHARE_READ,
@@ -19,13 +19,13 @@ void write_file(const char *path, const char *content, int content_length)
 		nullptr
 	);
 
-	// Check for valid handle
-	if (file_handle == INVALID_HANDLE_VALUE)
-		return;
+	// Return
+	return (file.handle != INVALID_HANDLE_VALUE);
+}
 
-	// Write content to the file
-	WriteFile(file_handle, content, content_length, nullptr, nullptr);
-
+// Close File
+void file_close(File &file)
+{
 	// Close the file handle
-	CloseHandle(file_handle);
+	CloseHandle(file.handle);
 }

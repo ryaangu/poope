@@ -6,6 +6,6 @@
 // Initialize program
 void init()
 {
-	compile("test.pp", ".code cpy reg1, 123 cpy reg0, reg1 ret");
-	link("test.pp");
+	compile("main.pp", ".code init: cpy reg0, 14 dec reg0 ret");
+	link("main.pp");
 }

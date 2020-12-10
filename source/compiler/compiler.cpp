@@ -6,13 +6,6 @@
 #include <core/hash_map.hpp>
 #include <core/filesystem.hpp>
 
-/*
-	Instructions:
-
-	- inc = 0x40
-	- dec = 0x48
-*/
-
 // The global Compiler
 Compiler g_compiler;
 
@@ -30,12 +23,30 @@ static int is_code;
 void compiler_init()
 {
 	// Prepare Compiler State
-	g_compiler.had_error = false;
-	g_compiler.code.init();
+	g_compiler.entry_point_address = 0;
+	g_compiler.had_error           = false;
+
+	g_compiler.bss_section.init();
+	g_compiler.data_section.init();
+	g_compiler.code_section.init();
 
 	// Initialize labels map and builder
 	labels_map.init();
 	builder.init();
+}
+
+// Error
+static void error(const char *message)
+{
+	// Error?
+	if (g_compiler.had_error)
+		return;
+
+	// Output the error
+	printf(stream_error, "%s -> Error: %s\n", g_compiler.path, message);
+
+    // Set had error
+    g_compiler.had_error = true;
 }
 
 // Error at Token
@@ -46,7 +57,7 @@ static void error_at(const Token &token, const char *message)
 		return;
 
 	// Output the error
-	printf(stream_error, "File: '%s' [line %d:%d] Error", g_compiler.path, token.line, token.column);
+	printf(stream_error, "%s (%d:%d) -> Error", g_compiler.path, token.line, token.column);
 
 	if (token.type == TOKEN_END)
 		printf(stream_error, " at end:");
@@ -62,7 +73,7 @@ static void error_at(const Token &token, const char *message)
 }
 
 // Error at previous token
-static inline void error(const char *message)
+static inline void error_previous(const char *message)
 {
     error_at(g_compiler.previous, message);
 }
@@ -79,7 +90,7 @@ static void advance()
     // Set previous token to the current token
     g_compiler.previous = g_compiler.current;
 
-    // Advance the scanner and check for a token error
+    // Advance the scanner and check for a token error_previous
     for (;;)
     {
         g_compiler.current = scan_token();
@@ -160,22 +171,28 @@ static int token_get_register_mod(int a, int b)
 }
 
 // Emit byte
-static void emit_byte(unsigned char byte)
+static void bss_emit_byte(unsigned char value)
 {
-	g_compiler.code.write_byte(byte);
+	g_compiler.bss_section.write_byte(value);
 }
 
-// Emit bytes
-static void emit_bytes(unsigned char a, unsigned char b)
+static void data_emit_byte(unsigned char value)
 {
-	emit_byte(a);
-	emit_byte(b);
+	g_compiler.data_section.write_byte(value);
+}
+
+static void code_emit_byte(unsigned char value)
+{
+	g_compiler.code_section.write_byte(value);
 }
 
 // Emit dword
-static void emit_dword(int value)
+static void code_emit_dword(int value)
 {
-	g_compiler.code.write_dword(value);
+	g_compiler.code_section.write_byte((value >> 0)  & 0xff);
+	g_compiler.code_section.write_byte((value >> 8)  & 0xff);
+	g_compiler.code_section.write_byte((value >> 16) & 0xff);
+	g_compiler.code_section.write_byte((value >> 24) & 0xff);
 }
 
 // Label
@@ -200,7 +217,7 @@ static void label(const Token &identifier_token)
 	}
 
 	// Add label to map
-	labels_map.set(builder, (g_compiler.code.size + 1));
+	labels_map.set(builder, (g_compiler.code_section.size + 1));
 }
 
 // Identifier
@@ -213,7 +230,7 @@ static void identifier()
 	if (match(TOKEN_COLON))
 		label(identifier_token);
 	else
-		error_current("Expect label.");
+		error_current("Expect label definition.");
 }
 
 // Section
@@ -234,11 +251,15 @@ static void section()
 	{
 		is_data = true;
 		is_code = false;
+
+		g_compiler.has_data = true;
 	}
 	else if (string_equals(builder, "code"))
 	{
 		is_code = true;
 		is_data = false;
+
+		g_compiler.has_code = true;
 	}
 	else
 		error_at(section_token, "Expect data or code section.");
@@ -256,7 +277,7 @@ static void cpy()
 	// Check for valid register
 	if (!token_is_register(g_compiler.previous.type))
 	{
-		error("Expect register after 'cpy'.");
+		error_previous("Expect register after 'cpy'.");
 		return;
 	}
 
@@ -276,8 +297,8 @@ static void cpy()
 		int value = string_to_integer(g_compiler.previous.start);
 
 		// Emit bytes
-		emit_byte(copy_instruction);
-		emit_dword(value);
+		code_emit_byte(copy_instruction);
+		code_emit_dword(value);
 	}
 	else
 	{
@@ -290,11 +311,12 @@ static void cpy()
 			int mod = token_get_register_mod(register_type, g_compiler.previous.type);
 
 			// Emit bytes
-			emit_bytes(0x89, mod);
+			code_emit_byte(0x89);
+			code_emit_byte(mod);
 		}
 		else
 		{
-			error("Expect register or number value.");
+			error_previous("Expect register or number value.");
 		}
 	}
 }
@@ -312,7 +334,7 @@ static void jmp()
 	// Label exists?
 	if (!labels_map.exists(builder))
 	{
-		error("This label does not exists.");
+		error_previous("This label does not exists.");
 		return;
 	}
 
@@ -320,17 +342,64 @@ static void jmp()
 	int address = labels_map.get(builder);
 
 	// Calculate jump address and encode to byte
-	unsigned char jump_address = (address - (g_compiler.code.size + 1)) & 0xff;
+	unsigned char jump_address = (address - (g_compiler.code_section.size + 1)) & 0xff;
 
 	// Emit bytes
-	emit_bytes(0xeb, jump_address);
+	code_emit_byte(0xeb);
+	code_emit_byte(jump_address);
 }
 
 // Return (ret)
 static void ret()
 {
 	// Emit byte
-	emit_byte(0xc3);
+	code_emit_byte(0xc3);
+}
+
+// Increment (inc)
+static void inc()
+{
+	// Set increment instruction
+	unsigned char inc_instruction = 0x40;
+
+	// Expect register
+	advance();
+
+	// Check for valid register
+	if (!token_is_register(g_compiler.previous.type))
+	{
+		error_previous("Expect register after 'inc'.");
+		return;
+	}
+
+	// Increase increment instruction with register value
+	inc_instruction += token_get_register_value(g_compiler.previous.type);
+
+	// Emit byte
+	code_emit_byte(inc_instruction);
+}
+
+// Decrement (dec)
+static void dec()
+{
+	// Set decrement instruction
+	unsigned char dec_instruction = 0x48;
+
+	// Expect register
+	advance();
+
+	// Check for valid register
+	if (!token_is_register(g_compiler.previous.type))
+	{
+		error_previous("Expect register after 'dec'.");
+		return;
+	}
+
+	// Increase decrement instruction with register value
+	dec_instruction += token_get_register_value(g_compiler.previous.type);
+
+	// Emit byte
+	code_emit_byte(dec_instruction);
 }
 
 // Statement
@@ -376,6 +445,20 @@ static void statement()
 			ret();
 			break;
 		}
+
+		// Increment (inc)
+		case TOKEN_INC:
+		{
+			inc();
+			break;
+		}
+
+		// Decrement (dec)
+		case TOKEN_DEC:
+		{
+			dec();
+			break;
+		}
 	}
 }
 
@@ -395,4 +478,21 @@ void compile(const char *path, const char *source)
     // Statements
     while (!match(TOKEN_END) && !g_compiler.had_error)
         statement();
+
+    // Expect code section
+    if (!g_compiler.has_code)
+    {
+    	error("Expect code section.");
+    	return;
+    }
+
+    // Expect entry point
+    if (!labels_map.exists("init"))
+    {
+    	error("No entry point 'init' found.");
+    	return;
+    }
+
+    // Get Entry Point Address
+    g_compiler.entry_point_address = static_cast<unsigned int>(labels_map.get("init")) - 1;
 }

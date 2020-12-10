@@ -2,7 +2,7 @@
 #define COMPILER_COMPILER_HPP
 
 #include <compiler/token.hpp>
-#include <core/buffer.hpp>
+#include <compiler/PE.hpp>
 
 // Compiler
 struct Compiler
@@ -12,9 +12,16 @@ struct Compiler
 
 	const char *path;
 
+	int has_bss;
+	int has_data;
+	int has_code;
 	int had_error;
 
-	Buffer code;
+	SectionBody bss_section;
+	SectionBody data_section;
+	SectionBody code_section;
+
+	unsigned int entry_point_address;
 };
 
 extern Compiler g_compiler;

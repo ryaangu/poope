@@ -20,14 +20,20 @@
 ```
 
 ## 🚀 TODO List!
-- [ ] sections
+- [x] .code section
+- [ ] .data section
 - [x] labels
 - [x] copy register, value
 - [x] copy register, register
 - [x] jump label
+- [x] increment register
+- [x] decrement register
 - [x] return
 
-- [ ] entry point
+- [x] entry point
+
+- [x] 32-bit Support
+- [ ] 64-bit Support
 
 ## 📝 NOTES
 - **ALWAYS** optimize the source code.

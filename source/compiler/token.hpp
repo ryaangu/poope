@@ -30,6 +30,8 @@ enum TokenType : int
     TOKEN_CMP, // cmp
     TOKEN_JMP, // jmp
     TOKEN_RET, // ret
+    TOKEN_INC, // inc
+    TOKEN_DEC, // dec
 
     // Registers
     TOKEN_REG0, // reg0
