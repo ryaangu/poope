@@ -29,9 +29,9 @@
 - [x] increment register
 - [x] decrement register
 - [x] return
-
+---
 - [x] entry point
-
+---
 - [x] 32-bit Support
 - [ ] 64-bit Support
 
